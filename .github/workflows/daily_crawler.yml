@@ -4,7 +4,7 @@ name: Daily Auto Crawler Pipeline
 # 觸發條件設定
 on:
   schedule:
-    - cron: '33 16 * * *'
+    - cron: '58 2 * * 2,6'
 
   # 允許在 GitHub 網頁介面上手動點擊按鈕觸發（方便除錯）
   workflow_dispatch:
@@ -46,7 +46,6 @@ jobs:
           python costcom_V7.py
 
       # 步驟 6：先只將爬蟲產出的 CSV 成果存成檔案並上傳為 Actions Artifact
-      # （尚未加入 git commit / push 回儲存庫，之後若需要自動提交，可再補上這段）
       - name: Upload Crawled CSV
         uses: actions/upload-artifact@v4
         with:
