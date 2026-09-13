@@ -1,0 +1,58 @@
+# 檔案路徑：.github/workflows/daily_crawler.yml
+name: Daily Auto Crawler Pipeline
+
+# 觸發條件設定
+on:
+  schedule:
+    - cron: '20 0 * * *'
+
+  # 允許在 GitHub 網頁介面上手動點擊按鈕觸發（方便除錯）
+  workflow_dispatch:
+
+# 執行任務定義
+jobs:
+  run-crawler:
+    # 指定雲端主機作業系統（最新版 Ubuntu，內建 Chrome 瀏覽器）
+    runs-on: ubuntu-latest
+    timeout-minutes: 20  # 避免 Selenium 卡住時無限占用 Actions 額度
+
+    steps:
+      # 步驟 1：檢出 (Checkout) 儲存庫的程式碼至虛擬機器
+      - name: Checkout Repository Code
+        uses: actions/checkout@v4
+
+      # 步驟 2：在虛擬機器上安裝 Python 環境
+      - name: Setup Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: 'pip'  # 快取 pip 依賴，大幅加速後續執行
+
+      # 步驟 3：安裝專案所需依賴套件（selenium / pytz / schedule）
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      # 步驟 4：安裝並固定 Chrome 瀏覽器版本
+      - name: Setup Chrome
+        uses: browser-actions/setup-chrome@v1
+        with:
+          chrome-version: stable
+
+      # 步驟 5：執行爬蟲主腳本
+      - name: Execute Python Crawler
+        run: |
+          python costcom_V7.py
+
+      # 步驟 6：先只將爬蟲產出的 CSV 成果存成檔案並上傳為 Actions Artifact
+      # （尚未加入 git commit / push 回儲存庫，之後若需要自動提交，可再補上這段）
+      - name: Upload Crawled CSV
+        uses: actions/upload-artifact@v4
+        with:
+          name: daybuy-article-csv
+          path: |
+            daybuy_article.csv
+            daybuy_scraper.log
+          if-no-files-found: warn
+          retention-days: 14
