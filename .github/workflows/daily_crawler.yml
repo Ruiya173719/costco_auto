@@ -4,7 +4,7 @@ name: Daily Auto Crawler Pipeline
 # 觸發條件設定
 on:
   schedule:
-    - cron: '20 0 * * *'
+    - cron: '* 0 * * *'
 
   # 允許在 GitHub 網頁介面上手動點擊按鈕觸發（方便除錯）
   workflow_dispatch:

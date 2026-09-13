@@ -48,7 +48,7 @@ LOG_BACKUP_CNT = 3                 # 保留最近的備份檔數
 
 # ---排程設定 ---
 TAIPEI_TZ           = pytz.timezone("Asia/Taipei")
-SCHEDULE_TIME       = "00:23"                  # 基準時間
+SCHEDULE_TIME       = "00:27"                  # 基準時間
 SCHEDULE_DAYS       = ("monday", "tuesday","wednesday",)  # 每週執行的星期
 RANDOM_DELAY_RANGE  = (0, 120) #7200               # 觸發後隨機延遲秒數
 
