@@ -27,6 +27,12 @@ LIST_TARGET_URL   = "https://www.daybuy.tw/costco/hypermarket-news/"
 LIST_CONTAINER_XPATH = '//*[@id="pencilatest_posts_43438"]'
 XPATH_PAGE_WIDE_POST_ID = '//*[starts-with(@id, "post-")]'  #全頁面偵測用
 
+# ---第四階段救援：清單頁掛掉---
+HOME_URL = "https://www.daybuy.tw/"
+ERROR_PAGE_INDICATORS = ("這個網站發生嚴重錯誤", "進一步了解 WordPress 中的疑難排解方式")
+FALLBACK_TITLE_KEYWORDS = ("賣場隱藏優惠目擊情報", "賣場優惠目擊")
+WEEKDAY_KEYWORDS = ("週二", "週六", "(二)", "(六)")
+
 # ---文章內頁：抓取圖片+文字---
 ARTICLE_CONTAINER_XPATH = '//*[@id="soledad_wrapper"]/div[2]/div/div/div[1]/div/div[3]'
 LIST_DIV_XPATH    = './div'
@@ -48,9 +54,9 @@ LOG_BACKUP_CNT = 3                 # 保留最近的備份檔數
 
 # ---排程設定 ---
 TAIPEI_TZ           = pytz.timezone("Asia/Taipei")
-SCHEDULE_TIME       = "03:00"                  # 基準時間
+SCHEDULE_TIME       = "19:25"                  # 基準時間
 SCHEDULE_DAYS       = ("tuesday","saturday",)  # 每週執行的星期
-RANDOM_DELAY_RANGE  = (0, 7200)                # 觸發後隨機延遲秒數
+RANDOM_DELAY_RANGE  = (0, 60)                # 觸發後隨機延遲秒數
 
 # ---正規化---
 CODE_RE = re.compile(r'#(\d+)')
@@ -261,6 +267,61 @@ def human_like_scroll(
             time.sleep(1.0)
             break
 
+# =====================================================================
+# 第四階段救援：清單頁掛掉時改由首頁定位最新文章
+# =====================================================================
+def is_wordpress_error_page(driver: webdriver.Chrome) -> bool:
+    """偵測目前頁面是否為 WordPress『嚴重錯誤』頁面"""
+    try:
+        body_text = driver.find_element(By.TAG_NAME, "body").text
+        return any(kw in body_text for kw in ERROR_PAGE_INDICATORS)
+    except Exception as e:
+        logger.warning(f"錯誤頁偵測失敗: {e}")
+        return False
+
+#第四階段救援：清單頁掛掉（WordPress 嚴重錯誤）時，改從首頁定位。
+def rescue_from_homepage(driver: webdriver.Chrome) -> list[dict]:
+    logger.warning("進入第四階段：清單頁疑似掛掉，改由首頁救援")
+    if not safe_get(driver, HOME_URL):
+        logger.error("第四階段救援失敗：首頁導航失敗")
+        return []
+
+    wait = WebDriverWait(driver, WAIT_TIMEOUT)
+    try:
+        wait.until(EC.presence_of_element_located((By.TAG_NAME, "body")))
+    except TimeoutException:
+        logger.error("第四階段救援失敗：首頁 body 逾時未載入")
+        return []
+    human_like_scroll(driver)
+
+    # 關鍵字搜尋
+    anchors = driver.find_elements(By.XPATH, "//a[@href]")
+    candidates = []
+    for a in anchors:
+        try:
+            text = a.text.strip()
+            href = a.get_attribute("href") or ""
+        except StaleElementReferenceException:
+            continue
+        if not text or "costco" not in href:
+            continue
+        if any(kw in text for kw in FALLBACK_TITLE_KEYWORDS) and any(wk in text for wk in WEEKDAY_KEYWORDS):
+            candidates.append({"title": text, "url": href})
+    # 依 href 去重，保留第一次出現的順序
+    seen = set()
+    deduped = []
+    for item in candidates:
+        if item["url"] not in seen:
+            seen.add(item["url"])
+            deduped.append(item)
+
+    if not deduped:
+        logger.error("第四階段救援失敗：首頁找不到符合關鍵字的最新文章")
+        return []
+
+    logger.info(f"第四階段救援成功，首頁共找到 {len(deduped)} 筆候選文章")
+    return deduped
+
 
 # =====================================================================
 # 清單頁，回傳網址清單
@@ -269,6 +330,11 @@ def scrape_list(driver: webdriver.Chrome) -> list[dict]:
     """
     從清單頁抓取文章標題與網址 (具備三階段容錯機制)
     """
+    # ---------- 第零階段：先判斷清單頁是否直接掛掉（WordPress 嚴重錯誤）----------
+    if is_wordpress_error_page(driver):
+        logger.warning("清單頁為 WordPress 嚴重錯誤頁，跳過一~三階段，直接進第四階段首頁救援")
+        return rescue_from_homepage(driver)
+
     wait = WebDriverWait(driver, WAIT_TIMEOUT)
     #雙重型偵測 V2
     xpath_by_class   = './/*[contains(concat(" ", normalize-space(@class), " "), " grid-title entry-title ")]'
@@ -322,7 +388,10 @@ def scrape_list(driver: webdriver.Chrome) -> list[dict]:
             logger.info(f"第三階段救援成功，全頁面共找到 {len(item_elements)} 個候選項目")
         except StaleElementReferenceException:      #查到清單元素並存入串列中
             logger.warning("全頁面亦找不到任何 post-ID 元素，目標網站結構可能已大幅變更")
-            return []
+            return rescue_from_homepage(driver)
+        except TimeoutException:
+            logger.warning("全頁面亦找不到任何 post-ID 元素（逾時），目標網站可能發生嚴重錯誤")
+            return rescue_from_homepage(driver)
 
     logger.info(f"清單頁最終共掃描到 {len(item_elements)} 個清單項目")
 
