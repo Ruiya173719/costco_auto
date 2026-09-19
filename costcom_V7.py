@@ -24,13 +24,12 @@ from selenium.common.exceptions import TimeoutException, StaleElementReferenceEx
 
 # ---抓取文章網址清單 ---
 LIST_TARGET_URL   = "https://www.daybuy.tw/costco/hypermarket-news/"
-LIST_CONTAINER_XPATH = '//*[@id="pencilatest_posts_43438"]'
-XPATH_PAGE_WIDE_POST_ID = '//*[starts-with(@id, "post-")]'  #全頁面偵測用
+XPATH_PAGE_WIDE_POST_ID = '//*[starts-with(@id, "post-")]'  #全頁面結構化 fallback 用
 
 # ---第四階段救援：清單頁掛掉---
 HOME_URL = "https://www.daybuy.tw/"
 ERROR_PAGE_INDICATORS = ("這個網站發生嚴重錯誤", "進一步了解 WordPress 中的疑難排解方式")
-FALLBACK_TITLE_KEYWORDS = ("賣場隱藏優惠目擊情報", "賣場優惠目擊")
+FALLBACK_TITLE_KEYWORDS = ("賣場隱藏優惠目擊情報", "賣場優惠目擊", "現場優惠")
 WEEKDAY_KEYWORDS = ("週二", "週六", "(二)", "(六)")
 
 # ---文章內頁：抓取圖片+文字---
@@ -40,7 +39,7 @@ IMAGE_XPATH_ALL   = './p/img | ./img'
 LIST_NODES_XPATH  = './p[img] | ./p[a] | ./img'
 
 WAIT_TIMEOUT = 15
-OUTPUT_CSV   = "daybuy_article.csv"
+OUTPUT_CSV   = "crawled_data.csv"
 
 # ---頁面載入 / 重試設定 ---
 PAGE_LOAD_TIMEOUT = 45          # 逾時秒數層
@@ -65,11 +64,7 @@ SIZE_TOKENS = {'XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', 'XXXXL', '均', 'F'}
 # =====================================================================
 
 def setup_logger() -> logging.Logger:
-    """
-    建立 logger：
-      - Console：印出 INFO 以上等級，方便即時觀察執行概況
-      - 檔案：記錄 DEBUG 以上等級並自動輪替，方便事後追查 bug
-    """
+    """建立 logger """
     logger = logging.getLogger("daybuy_scraper")#log名稱
     logger.setLevel(logging.DEBUG)
 
@@ -239,10 +234,7 @@ def human_like_scroll(
     step_range: tuple = (100, 250),
     pause_range: tuple = (0.1, 1.0),
 ) -> None:
-    """
-    用 ActionChains.scroll_by_amount 派送真實滑鼠滾輪事件（isTrusted=True），
-    並在每次滾動後偵測網址是否被自動換頁，若換頁立刻停止。
-    """
+    
     start_url = driver.current_url
     actions   = ActionChains(driver)
 
@@ -268,10 +260,10 @@ def human_like_scroll(
             break
 
 # =====================================================================
-# 第四階段救援：清單頁掛掉時改由首頁定位最新文章
+# 關鍵字判斷 / 首頁救援：清單頁掛掉或內容不符時改由首頁定位最新文章
 # =====================================================================
 def is_wordpress_error_page(driver: webdriver.Chrome) -> bool:
-    """偵測目前頁面是否為 WordPress『嚴重錯誤』頁面"""
+    """第零階段判斷:偵測目前頁面是否為 WordPress『嚴重錯誤』頁面"""
     try:
         body_text = driver.find_element(By.TAG_NAME, "body").text
         return any(kw in body_text for kw in ERROR_PAGE_INDICATORS)
@@ -279,47 +271,59 @@ def is_wordpress_error_page(driver: webdriver.Chrome) -> bool:
         logger.warning(f"錯誤頁偵測失敗: {e}")
         return False
 
-#第四階段救援：清單頁掛掉（WordPress 嚴重錯誤）時，改從首頁定位。
-def rescue_from_homepage(driver: webdriver.Chrome) -> list[dict]:
-    logger.warning("進入第四階段：清單頁疑似掛掉，改由首頁救援")
-    if not safe_get(driver, HOME_URL):
-        logger.error("第四階段救援失敗：首頁導航失敗")
-        return []
+#關鍵字過濾器
+def is_deal_article_title(title: str) -> bool:
 
-    wait = WebDriverWait(driver, WAIT_TIMEOUT)
-    try:
-        wait.until(EC.presence_of_element_located((By.TAG_NAME, "body")))
-    except TimeoutException:
-        logger.error("第四階段救援失敗：首頁 body 逾時未載入")
-        return []
-    human_like_scroll(driver)
+    if not title:
+        return False
+    return any(kw in title for kw in FALLBACK_TITLE_KEYWORDS) and any(wk in title for wk in WEEKDAY_KEYWORDS)
 
-    # 關鍵字搜尋
+#第一、二階段判斷邏輯(V7.2)
+def collect_deal_links_by_keyword(driver: webdriver.Chrome) -> list[dict]:
     anchors = driver.find_elements(By.XPATH, "//a[@href]")
     candidates = []
     for a in anchors:
-        try:
+        try:#初篩
             text = a.text.strip()
             href = a.get_attribute("href") or ""
         except StaleElementReferenceException:
             continue
+        #連結必須有文字
         if not text or "costco" not in href:
             continue
-        if any(kw in text for kw in FALLBACK_TITLE_KEYWORDS) and any(wk in text for wk in WEEKDAY_KEYWORDS):
+        #核心條件：標題必須符合優惠文章的關鍵字規則
+        if is_deal_article_title(text):
             candidates.append({"title": text, "url": href})
-    # 依 href 去重，保留第一次出現的順序
+    #網址去重
     seen = set()
     deduped = []
     for item in candidates:
         if item["url"] not in seen:
             seen.add(item["url"])
             deduped.append(item)
+    return deduped
 
-    if not deduped:
-        logger.error("第四階段救援失敗：首頁找不到符合關鍵字的最新文章")
+#第四階段救援：清單頁掛掉（WordPress 嚴重錯誤）時，改從首頁定位。
+def rescue_from_homepage(driver: webdriver.Chrome) -> list[dict]:
+    logger.warning("進入首頁救援：清單頁疑似掛掉或無符合內容，改由首頁定位")
+    if not safe_get(driver, HOME_URL):
+        logger.error("首頁救援失敗：首頁導航失敗")
         return []
 
-    logger.info(f"第四階段救援成功，首頁共找到 {len(deduped)} 筆候選文章")
+    wait = WebDriverWait(driver, WAIT_TIMEOUT)
+    try:
+        wait.until(EC.presence_of_element_located((By.TAG_NAME, "body")))
+    except TimeoutException:
+        logger.error("首頁救援失敗：首頁 body 逾時未載入")
+        return []
+    human_like_scroll(driver)
+    #關鍵字判斷邏輯
+    deduped = collect_deal_links_by_keyword(driver)
+    if not deduped:
+        logger.error("首頁救援失敗：首頁找不到符合關鍵字的最新文章")
+        return []
+
+    logger.info(f"首頁救援成功，共找到 {len(deduped)} 筆候選文章")
     return deduped
 
 
@@ -328,81 +332,50 @@ def rescue_from_homepage(driver: webdriver.Chrome) -> list[dict]:
 # =====================================================================
 def scrape_list(driver: webdriver.Chrome) -> list[dict]:
     """
-    從清單頁抓取文章標題與網址 (具備三階段容錯機制)
+    從清單頁抓取文章標題與網址。
+    第一階段以關鍵字直接掃描為主要方法
+    第二階段為結構化 全頁面 post-ID 搜尋
+    第三階段為首頁救援。
     """
     # ---------- 第零階段：先判斷清單頁是否直接掛掉（WordPress 嚴重錯誤）----------
     if is_wordpress_error_page(driver):
-        logger.warning("清單頁為 WordPress 嚴重錯誤頁，跳過一~三階段，直接進第四階段首頁救援")
+        logger.warning("清單頁為 WordPress 嚴重錯誤頁，直接進首頁救援")
         return rescue_from_homepage(driver)
 
+    # ---------- 第一階段：關鍵字直接掃描（主要方法） ----------
+    results = collect_deal_links_by_keyword(driver)
+    if results:
+        logger.info(f"第一階段（關鍵字掃描）命中，共找到 {len(results)} 篇優惠目擊情報文章")
+        return results
+
+    logger.warning("第一階段關鍵字掃描未命中，進入第二階段全頁面 post-ID 結構化搜尋")
+
+    # ---------- 第二階段：全頁面 post-ID 結構化----------
     wait = WebDriverWait(driver, WAIT_TIMEOUT)
-    #雙重型偵測 V2
-    xpath_by_class   = './/*[contains(concat(" ", normalize-space(@class), " "), " grid-title entry-title ")]'
-    xpath_by_post_id = './/*[starts-with(@id, "post-")]'
-
-    item_elements = []  #主容器
-    container = None    #清單容器
-
-   # ---------- 第一階段：嘗試主容器 ----------
     try:
-        container = wait.until(
-            EC.presence_of_element_located((By.XPATH, LIST_CONTAINER_XPATH))
-        )
-    except TimeoutException:
-        logger.error(f"第一階段：找不到清單主容器 {LIST_CONTAINER_XPATH}，準備觸發全頁救援模式")
-    # ---------- 第二階段：容器內雙重偵測 ----------
-    if container is not None:
-        item_xpath = None
-        try:                    #第一次測試
-            wait.until(lambda d: len(container.find_elements(By.XPATH, xpath_by_class)) > 0)
-            item_xpath = xpath_by_class
-            logger.info("清單頁版型偵測：第一層(舊版 class)命中")
-        except TimeoutException:
-            pass
-        if item_xpath is None:  #第二次測試
-            try:
-                wait.until(lambda d: len(container.find_elements(By.XPATH, xpath_by_post_id)) > 0)
-                item_xpath = xpath_by_post_id
-                logger.info("清單頁版型偵測：第二層(容器內 post-ID)命中")
-            except TimeoutException:
-                pass
+        wait.until(lambda d: len(d.find_elements(By.XPATH, XPATH_PAGE_WIDE_POST_ID)) > 0)
+        item_elements = driver.find_elements(By.XPATH, XPATH_PAGE_WIDE_POST_ID)
+        logger.info(f"第二階段命中，全頁面共找到 {len(item_elements)} 個候選項目")
+    except (TimeoutException, StaleElementReferenceException):
+        logger.warning("第二階段亦找不到任何 post-ID 元素，觸發第三階段首頁救援")
+        return rescue_from_homepage(driver)
 
-        if item_xpath is not None: #雙重偵測失效轉全頁面偵測
-            try:
-                item_elements = container.find_elements(By.XPATH, item_xpath)
-            except StaleElementReferenceException:
-                logger.warning("[警告] 容器物件已失效（內容被動態替換），重新定位一次")
-                try:
-                    container = wait.until(
-                        EC.presence_of_element_located((By.XPATH, LIST_CONTAINER_XPATH))
-                    )
-                    item_elements = container.find_elements(By.XPATH, item_xpath)
-                except TimeoutException:
-                    item_elements = []
-    # ---------- 第三階段：全頁面 Fallback 救援 ----------
-    if not item_elements:
-        logger.warning("進入第三階段：容器失效或無內容，啟動全頁面 post-ID 搜尋")
-        try:
-            wait.until(lambda d: len(d.find_elements(By.XPATH, XPATH_PAGE_WIDE_POST_ID)) > 0)
-            item_elements = driver.find_elements(By.XPATH, XPATH_PAGE_WIDE_POST_ID)
-            logger.info(f"第三階段救援成功，全頁面共找到 {len(item_elements)} 個候選項目")
-        except StaleElementReferenceException:      #查到清單元素並存入串列中
-            logger.warning("全頁面亦找不到任何 post-ID 元素，目標網站結構可能已大幅變更")
-            return rescue_from_homepage(driver)
-        except TimeoutException:
-            logger.warning("全頁面亦找不到任何 post-ID 元素（逾時），目標網站可能發生嚴重錯誤")
-            return rescue_from_homepage(driver)
-
-    logger.info(f"清單頁最終共掃描到 {len(item_elements)} 個清單項目")
-
-    # 批次解析資料
-    results = []
+    extracted = []
     for el in item_elements:
         item = _extract_link_from_item(el)
         if item:
-            results.append(item)
+            extracted.append(item)
 
-    return results
+    filtered = [item for item in extracted if is_deal_article_title(item.get("title", ""))]
+    excluded_count = len(extracted) - len(filtered)
+    if excluded_count > 0:
+        logger.info(f"內容篩選：排除 {excluded_count} 篇非優惠目擊情報類型文章")
+
+    if not filtered:
+        logger.warning("第二階段項目中找不到任何優惠目擊情報類型文章，觸發第三階段首頁救援")
+        return rescue_from_homepage(driver)
+
+    return filtered
 
 
 # =====================================================================
@@ -588,12 +561,12 @@ def run_scraper():
 
         # ---進入最新一篇文章內頁---
         logger.info("[第二階段] 進入最新一篇文章，抓取圖片 + 正規化文字資料")
-        article_data = scrape_article(driver, latest["url"])
+        crawled_data = scrape_article(driver, latest["url"])
 
         # 爬取概況：只記錄統計數字，不記錄完整內容
-        logger.info(f"最新文章《{latest['title']}》共擷取 {len(article_data)} 筆正規化後資料")
+        logger.info(f"最新文章《{latest['title']}》共擷取 {len(crawled_data)} 筆正規化後資料")
 
-        save_to_csv(article_data, OUTPUT_CSV)
+        save_to_csv(crawled_data, OUTPUT_CSV)
 
     except Exception:
         # 捕捉未預期例外，完整記錄 traceback 方便除錯
