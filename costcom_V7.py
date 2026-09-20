@@ -532,20 +532,22 @@ def save_to_csv(data: list[dict], filename: str) -> None:
 # =====================================================================
 # 主流程
 # =====================================================================
-def run_scraper():
+def run_scraper(save_csv: bool = True):
     """
-    執行一次完整的爬取流程：清單頁 -> 最新文章 -> 輸出 CSV。
+    執行一次完整的爬取流程：清單頁 -> 最新文章 -> (可選)輸出 CSV。
     """
     start_time = time.time()
     logger.info("=" * 20 + " 程式開始執行 " + "=" * 20)
 
     driver = build_driver(headless=True)
+    crawled_data = None
+    article_url = None
     try:
         # ---清單頁 ---
         logger.info("[第一階段] 開啟清單頁，抓取文章網址清單")
         if not safe_get(driver, LIST_TARGET_URL):
             logger.error("清單頁導航失敗，程式中止")
-            return
+            return None, None
         WebDriverWait(driver, WAIT_TIMEOUT).until(
             EC.presence_of_element_located((By.TAG_NAME, "body"))
         )
@@ -554,29 +556,35 @@ def run_scraper():
 
         if not links:
             logger.error("清單頁未抓到任何網址，程式中止")
-            return
+            return None, None
 
         latest = links[0]
+        article_url = latest["url"]
         logger.info(f"清單頁共 {len(links)} 筆，鎖定最新一篇：《{latest['title']}》")
 
         # ---進入最新一篇文章內頁---
         logger.info("[第二階段] 進入最新一篇文章，抓取圖片 + 正規化文字資料")
-        crawled_data = scrape_article(driver, latest["url"])
+        crawled_data = scrape_article(driver, article_url)
 
         # 爬取概況：只記錄統計數字，不記錄完整內容
         logger.info(f"最新文章《{latest['title']}》共擷取 {len(crawled_data)} 筆正規化後資料")
 
-        save_to_csv(crawled_data, OUTPUT_CSV)
+        if save_csv:
+            save_to_csv(crawled_data, OUTPUT_CSV)
 
     except Exception:
         # 捕捉未預期例外，完整記錄 traceback 方便除錯
         logger.error("程式執行過程發生未預期例外", exc_info=True)
+        crawled_data = None
+        article_url = None
 
     finally:
         driver.quit()
         elapsed = time.time() - start_time
         logger.info(f"程式執行結束，總耗時 {elapsed:.1f} 秒")
         logger.info("=" * 50)
+
+    return crawled_data, article_url
 
 
 # =====================================================================

@@ -1,17 +1,16 @@
-# 檔案路徑：.github/workflows/daily_crawler.yml
-name: Daily Auto Crawler Pipeline
+name: Costco Auto Pipeline
 
 # 觸發條件設定
 on:
   schedule:
-    - cron: '58 2 * * 2,6'
+    - cron: '58 2 * * 2,6'  # UTC 02:58 = 台北時間 10:58（週二/週六），提早 2 分鐘啟動當緩衝
 
-  # 允許在 GitHub 網頁介面上手動點擊按鈕觸發（方便除錯）
+  # 允許手動點擊按鈕觸發
   workflow_dispatch:
 
 # 執行任務定義
 jobs:
-  run-crawler:
+  run-pipeline:
     # 指定雲端主機作業系統（最新版 Ubuntu，內建 Chrome 瀏覽器）
     runs-on: ubuntu-latest
     timeout-minutes: 20  # 避免 Selenium 卡住時無限占用 Actions 額度
@@ -28,7 +27,7 @@ jobs:
           python-version: '3.10'
           cache: 'pip'  # 快取 pip 依賴，大幅加速後續執行
 
-      # 步驟 3：安裝專案所需依賴套件（selenium / pytz / schedule）
+      # 步驟 3：安裝專案所需依賴套件
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
@@ -40,18 +39,26 @@ jobs:
         with:
           chrome-version: stable
 
-      # 步驟 5：執行爬蟲主腳本
-      - name: Execute Python Crawler
-        run: |
-          python costcom_V7.py
+      # 步驟 5：把 Google Vision 服務帳號金鑰從 Secrets 寫成實體檔案
+      - name: Write Google Vision Credentials
+        run: echo '${{ secrets.GOOGLE_VISION_CREDENTIALS_JSON }}' > ${{ github.workspace }}/gcp-credentials.json
 
-      # 步驟 6：先只將爬蟲產出的 CSV 成果存成檔案並上傳為 Actions Artifact
-      - name: Upload Crawled CSV
+      # 步驟 6：執行完整流程（爬蟲 -> 正規化I -> OCR -> 正規化II），一次跑完不再分階段
+      - name: Run Full Pipeline
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ github.workspace }}/gcp-credentials.json
+        run: |
+          python main.py
+
+      # 步驟 7：不論成功或失敗，都把最終產出跟 log 存成 Artifact 方便追查
+      - name: Upload Pipeline Outputs
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: daybuy-article-csv
+          name: pipeline-outputs
           path: |
-            daybuy_article.csv
+            final_output.csv
             daybuy_scraper.log
           if-no-files-found: warn
           retention-days: 14

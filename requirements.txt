@@ -1,3 +1,9 @@
 selenium
 pytz
 schedule
+psycopg2-binary
+python-dotenv
+google-cloud-vision
+opencv-python-headless
+numpy
+requests
