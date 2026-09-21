@@ -13,7 +13,7 @@ import normalize_finalize as finalize
 import line_push
 
 # 外部網頁網址
-WEBPAGE_URL = "https://example.github.io/costco-auto/"
+WEBPAGE_URL = "https://ruiya173719.github.io/costco_auto/"
 LINE_PUSH_DRY_RUN = False
 
 
