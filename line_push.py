@@ -13,7 +13,7 @@ import pytz
 
 load_dotenv()
 
-LINE_BROADCAST_URL = "https://ruiya173719.github.io/costco_auto/"
+LINE_BROADCAST_URL = "https://api.line.me/v2/bot/message/broadcast"
 
 # ---- LINE免費版 官方規格上限（2026 年查證版本）----
 MAX_BUBBLES_PER_CAROUSEL = 12   # 1 個 Carousel 最多 12 張 bubble
@@ -283,6 +283,6 @@ if __name__ == "__main__":
          'original_price': None, 'discount_price': None, 'confidence_tier': '低信心_退回網址',
          'image_url': 'https://example.com/333.jpg'},
     ]
-    result = run_line_push(fake_rows, webpage_url="https://example.github.io/costco", dry_run=True)
+    result = run_line_push(fake_rows, webpage_url="https://ruiya173719.github.io/costco_auto/", dry_run=True)
     import json
     print(json.dumps(result['messages'], ensure_ascii=False, indent=2)[:2000])
