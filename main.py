@@ -10,6 +10,12 @@ import costcom_V7 as crawler
 import normalize_stage1 as stage1
 import OCR_v8_4 as ocr
 import normalize_finalize as finalize
+import line_push
+
+# 外部網頁還沒蓋好之前，先用假網址佔位；蓋好後把這裡換成真正的網址
+WEBPAGE_URL = "https://example.github.io/costco-auto/"
+# 網頁蓋好、確認過 Flex Message 排版沒問題之前，先維持 True（只印出結果，不會真的推播出去）
+LINE_PUSH_DRY_RUN = True
 
 
 def run_pipeline():
@@ -38,7 +44,7 @@ def run_pipeline():
         # ---- [3/4] OCR：使用正規化I清洗後的圖片網址進行識別 ----
         print("\n" + "=" * 20 + " [3/4] OCR " + "=" * 20)
         image_urls = list(stage1_result['seen_ocr_urls'])
-        if image_urls:     #不匯出CSV檔資料直接保留在記憶體中
+        if image_urls:     #不匯出CSV檔資料僅保留在記憶體中
             all_results, all_dropped, all_errors, calls_used = ocr.run_batch(
                 urls=image_urls, write_files=False
             )
@@ -56,7 +62,7 @@ def run_pipeline():
             calls_used=calls_used,
         )
     finally:
-        conn.close()  # 確保連線安全關閉
+        conn.close()  # 連線安全關閉
 
     # ---- 產出最終結果：唯一保留的檔案，供人工檢視或之後接 LINE 推播 ----
     finalize.save_final_output(finalize_result['cache_and_skip_rows'], finalize_result['ocr_output_rows'])
@@ -70,6 +76,14 @@ def run_pipeline():
     print(f"本次實際 Vision API 用量: {calls_used} 次（已累加回 api_usage_monthly）")
     print("已寫回 Supabase：latest_cache / product_history / api_usage_monthly / runs")
     print("已輸出：final_output.csv")
+
+    # ---- [5/5] LINE 推播：把這次結果組成 Flex Carousel 廣播出去 ----
+    print("\n" + "=" * 20 + " [5/5] LINE 推播 " + "=" * 20)
+    line_result = line_push.run_line_push(
+        finalize_result['all_db_rows'],
+        webpage_url=WEBPAGE_URL,
+        dry_run=LINE_PUSH_DRY_RUN,
+    )
 
     return finalize_result
 

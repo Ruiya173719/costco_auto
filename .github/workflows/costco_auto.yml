@@ -43,11 +43,12 @@ jobs:
       - name: Write Google Vision Credentials
         run: echo '${{ secrets.GOOGLE_VISION_CREDENTIALS_JSON }}' > ${{ github.workspace }}/gcp-credentials.json
 
-      # 步驟 6：執行完整流程（爬蟲 -> 正規化I -> OCR -> 正規化II），一次跑完不再分階段
+      # 步驟 6：執行完整流程（爬蟲 -> 正規化I -> OCR -> 正規化II -> LINE推播），一次跑完不再分階段
       - name: Run Full Pipeline
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
           GOOGLE_APPLICATION_CREDENTIALS: ${{ github.workspace }}/gcp-credentials.json
+          LINE_CHANNEL_ACCESS_TOKEN: ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}
         run: |
           python main.py
 

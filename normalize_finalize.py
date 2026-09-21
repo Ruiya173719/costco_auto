@@ -133,9 +133,9 @@ def cache_and_skip_to_db_rows(cache_and_skip_rows):
             'image_url': row.get('source_url') or '',
             'confidence_tier': row.get('confidence_tier'),
             'source': row.get('source'),  # cache_hit / quota_skip
-            #如本次OCR無診斷數據則留空
-            'original_price': None,
-            'discount_price': None,
+            #v10.1折價對比用；若就沒有這項資料，讀不到是None
+            'original_price': to_int_or_none(row.get('original_price')),
+            'discount_price': to_int_or_none(row.get('discount_price')),
             'sale_price_suspect': None,
             'sale_price_conf': None,
             'sale_price_digit_count': None,
@@ -155,18 +155,21 @@ def upsert_latest_cache(conn, run_id, db_rows):
         for row in db_rows:
             cur.execute(
                 """
-                INSERT INTO latest_cache (code, chinese_name, sale_price, image_url, confidence_tier, last_run_id, updated_at)
-                VALUES (%s, %s, %s, %s, %s, %s, now())
+                INSERT INTO latest_cache (code, chinese_name, sale_price, original_price, discount_price,
+                                           image_url, confidence_tier, last_run_id, updated_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, now())
                 ON CONFLICT (code) DO UPDATE SET
                     chinese_name = EXCLUDED.chinese_name,
                     sale_price = EXCLUDED.sale_price,
+                    original_price = EXCLUDED.original_price,
+                    discount_price = EXCLUDED.discount_price,
                     image_url = EXCLUDED.image_url,
                     confidence_tier = EXCLUDED.confidence_tier,
                     last_run_id = EXCLUDED.last_run_id,
                     updated_at = now()
                 """,
-                (row['code'], row['chinese_name'], row['sale_price_db'], row['image_url'],
-                 row['confidence_tier'], run_id)
+                (row['code'], row['chinese_name'], row['sale_price_db'], row['original_price'], row['discount_price'],
+                 row['image_url'], row['confidence_tier'], run_id)
             )
     conn.commit()
 

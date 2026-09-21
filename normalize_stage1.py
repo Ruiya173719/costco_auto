@@ -89,7 +89,7 @@ def fetch_cache_rows(conn, codes, prev_run_id):
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         cur.execute(
             """
-            SELECT code, chinese_name, sale_price, image_url, confidence_tier
+            SELECT code, chinese_name, sale_price, original_price, discount_price, image_url, confidence_tier
             FROM latest_cache
             WHERE code = ANY(%s)
               AND last_run_id = %s
@@ -156,6 +156,8 @@ def run_stage1_core(conn, run_id, prev_run_id, crawled_rows):
                 'code': code,
                 'chinese_name': p['chinese_name'] or hit['chinese_name'],
                 'sale_price': hit['sale_price'],
+                'original_price': hit.get('original_price'),   # LINE 推播依折扣金額排序用
+                'discount_price': hit.get('discount_price'),   # LINE 推播依折扣金額排序用
                 'source_url': '',
                 'confidence_tier': '高信心_顯示特價',
                 'source': 'cache_hit',
@@ -168,6 +170,8 @@ def run_stage1_core(conn, run_id, prev_run_id, crawled_rows):
                 'code': code,
                 'chinese_name': p['chinese_name'],
                 'sale_price': '',                       # 價格留空
+                'original_price': None,                 # 若無OCR，則無這項資料
+                'discount_price': None,
                 'source_url': p['image_url'],           # 提供原網址
                 'confidence_tier': '低信心_退回網址',
                 'source': 'quota_skip',
