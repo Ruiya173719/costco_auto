@@ -9,6 +9,7 @@ import math
 import requests
 from datetime import datetime
 from dotenv import load_dotenv
+import pytz
 
 load_dotenv()
 
@@ -22,6 +23,7 @@ MAX_ALT_TEXT_LEN = 400          # 備用替代文字字元 上限
 # ---- 這個系統的分卡規則 ----
 HIGH_CONFIDENCE_ROWS_PER_CARD = 7    # 每張高信心表格卡放幾列
 MAX_HIGH_CONFIDENCE_HIGHLIGHTS = 21  # 高信心商品最多精選幾筆上 LINE（其餘去網頁看）
+TAIPEI_TZ = pytz.timezone("Asia/Taipei")
 
 BRAND_RED = "#E31937"
 
@@ -254,7 +256,7 @@ def broadcast_messages(messages, dry_run=False):
 # ---------------------------------------------------------
 def run_line_push(all_db_rows, webpage_url, run_date=None, dry_run=False):
     if run_date is None:
-        run_date = datetime.now()
+        run_date = datetime.now(TAIPEI_TZ)
     run_date_str = run_date.strftime("%Y/%m/%d")
 
     messages, stats = build_carousels(all_db_rows, run_date_str, webpage_url)
