@@ -12,10 +12,9 @@ import OCR_v8_4 as ocr
 import normalize_finalize as finalize
 import line_push
 
-# 外部網頁還沒蓋好之前，先用假網址佔位；蓋好後把這裡換成真正的網址
+# 外部網頁網址
 WEBPAGE_URL = "https://example.github.io/costco-auto/"
-# 網頁蓋好、確認過 Flex Message 排版沒問題之前，先維持 True（只印出結果，不會真的推播出去）
-LINE_PUSH_DRY_RUN = True
+LINE_PUSH_DRY_RUN = False
 
 
 def run_pipeline():
