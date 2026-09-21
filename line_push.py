@@ -13,7 +13,7 @@ import pytz
 
 load_dotenv()
 
-LINE_BROADCAST_URL = "https://api.line.me/v2/bot/message/broadcast"
+LINE_BROADCAST_URL = "https://ruiya173719.github.io/costco_auto/"
 
 # ---- LINE免費版 官方規格上限（2026 年查證版本）----
 MAX_BUBBLES_PER_CAROUSEL = 12   # 1 個 Carousel 最多 12 張 bubble
