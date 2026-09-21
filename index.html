@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>好市多優惠速報</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F2EFE7;
+    --ink: #1C1B19;
+    --costco-red: #E31937;
+    --tag-yellow: #F5B700;
+    --muted: #6B6660;
+    --card-line: #E4DFD3;
+    --card-bg: #FFFFFF;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, sans-serif;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .display {
+    font-family: 'Bricolage Grotesque', 'Noto Sans TC', sans-serif;
+  }
+
+  .wrap {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 0 20px 64px;
+  }
+
+  header.masthead {
+    background: var(--costco-red);
+    color: #fff;
+    padding: 36px 20px 28px;
+    margin-bottom: 28px;
+  }
+
+  header.masthead .inner {
+    max-width: 640px;
+    margin: 0 auto;
+  }
+
+  header.masthead .eyebrow {
+    font-size: 13px;
+    letter-spacing: 0.02em;
+    opacity: 0.85;
+    margin-bottom: 6px;
+  }
+
+  header.masthead h1 {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 34px;
+    font-weight: 800;
+    margin: 0 0 10px;
+    letter-spacing: -0.01em;
+  }
+
+  header.masthead .meta {
+    font-size: 14px;
+    opacity: 0.9;
+  }
+
+  section.block { margin-bottom: 40px; }
+
+  h2.section-title {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    margin: 0 0 4px;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+
+  h2.section-title .count {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--muted);
+  }
+
+  p.section-desc {
+    margin: 0 0 16px;
+    font-size: 14px;
+    color: var(--muted);
+  }
+
+  .price-list {
+    background: var(--card-bg);
+    border: 1px solid var(--card-line);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .price-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--card-line);
+  }
+
+  .price-row:last-child { border-bottom: none; }
+
+  .price-row .name {
+    flex: 1;
+    font-size: 15px;
+    font-weight: 500;
+  }
+
+  .price-row .discount-chip {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--ink);
+    background: var(--tag-yellow);
+    padding: 2px 7px;
+    border-radius: 3px;
+    white-space: nowrap;
+  }
+
+  .price-row .price {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 19px;
+    font-weight: 800;
+    color: var(--costco-red);
+    white-space: nowrap;
+  }
+
+  .photo-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  .photo-card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-line);
+    border-radius: 4px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    text-decoration: none;
+    color: inherit;
+  }
+
+  .photo-card .thumb {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    background: #EFEBE0;
+    display: block;
+  }
+
+  .photo-card .caption {
+    padding: 10px 12px;
+  }
+
+  .photo-card .tier-label {
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 3px;
+  }
+
+  .photo-card .cap-name {
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.4;
+  }
+
+  .state-box {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--muted);
+  }
+
+  .state-box .display {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 8px;
+  }
+
+  footer.disclaimer {
+    margin-top: 48px;
+    padding-top: 20px;
+    border-top: 1px solid var(--card-line);
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  @media (max-width: 420px) {
+    header.masthead h1 { font-size: 28px; }
+    .photo-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="inner">
+    <div class="eyebrow">自動化優惠辨識系統</div>
+    <h1 class="display">好市多優惠速報</h1>
+    <div class="meta" id="run-meta">讀取中…</div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div id="content">
+    <div class="state-box">
+      <div class="display">讀取優惠資料中</div>
+      <div>正在向資料庫要最新一次的清單，稍等一下</div>
+    </div>
+  </div>
+
+  <footer class="disclaimer">
+    本頁面資料由自動化辨識系統產生，價格與庫存請以賣場實際標示為準。「已確認特價」為系統交叉比對原價與折扣後判定為高信心的結果；「待人工確認」為系統無法完整判讀、需要肉眼核對原圖的商品。
+  </footer>
+</div>
+
+<script>
+const SUPABASE_URL = "https://gteawdhxaqlmewpzddxr.supabase.co/rest/v1/";
+const SUPABASE_ANON_KEY = "sb_publishable_MWRHUiC4sUXbt8wcUG6QbQ_o4W31OpF";
+
+const HIGH_TIER = "高信心_顯示特價";
+const LOW_TIERS = ["低信心_退回網址", "OCR辨識失敗_退回網址"];
+
+function supabaseHeaders() {
+  return {
+    "apikey": SUPABASE_ANON_KEY,
+    "Authorization": "Bearer " + SUPABASE_ANON_KEY,
+  };
+}
+
+async function fetchLatestRun() {
+  const url = `${SUPABASE_URL}/rest/v1/runs?select=id,started_at&status=eq.success&order=id.desc&limit=1`;
+  const res = await fetch(url, { headers: supabaseHeaders() });
+  if (!res.ok) throw new Error(`runs 查詢失敗 (${res.status})`);
+  const rows = await res.json();
+  if (!rows.length) throw new Error("目前沒有任何成功執行的紀錄");
+  return rows[0];
+}
+
+async function fetchLatestCache(runId) {
+  const url = `${SUPABASE_URL}/rest/v1/latest_cache`
+    + `?select=code,chinese_name,sale_price,original_price,discount_price,image_url,confidence_tier`
+    + `&last_run_id=eq.${runId}`;
+  const res = await fetch(url, { headers: supabaseHeaders() });
+  if (!res.ok) throw new Error(`latest_cache 查詢失敗 (${res.status})`);
+  return res.json();
+}
+
+function discountRatio(row) {
+  const original = row.original_price;
+  const sale = row.sale_price;
+  if (!original || !sale) return -1;
+  return (original - sale) / original;
+}
+
+function formatTaipeiDate(isoString) {
+  const d = new Date(isoString);
+  return new Intl.DateTimeFormat("zh-TW", {
+    timeZone: "Asia/Taipei",
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit",
+  }).format(d);
+}
+
+function renderPriceRow(row) {
+  const ratio = discountRatio(row);
+  const chip = ratio > 0 ? `<span class="discount-chip">省 ${Math.round(ratio * 100)}%</span>` : "";
+  return `
+    <div class="price-row">
+      <div class="name">${escapeHtml(row.chinese_name || "（商品名稱未辨識）")}</div>
+      ${chip}
+      <div class="price">$${row.sale_price}</div>
+    </div>`;
+}
+
+function renderPhotoCard(row) {
+  const tierLabel = row.confidence_tier === "OCR辨識失敗_退回網址" ? "辨識失敗" : "待人工確認";
+  const name = escapeHtml(row.chinese_name || "商品名稱未辨識");
+  const img = row.image_url
+    ? `<img class="thumb" src="${escapeAttr(row.image_url)}" alt="${name}" loading="lazy">`
+    : `<div class="thumb"></div>`;
+  return `
+    <a class="photo-card" href="${escapeAttr(row.image_url || '#')}" target="_blank" rel="noopener">
+      ${img}
+      <div class="caption">
+        <div class="tier-label">${tierLabel}</div>
+        <div class="cap-name">${name}</div>
+      </div>
+    </a>`;
+}
+
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, (c) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+  }[c]));
+}
+function escapeAttr(str) { return escapeHtml(str); }
+
+function renderError(message) {
+  document.getElementById("content").innerHTML = `
+    <div class="state-box">
+      <div class="display">讀不到資料</div>
+      <div>${escapeHtml(message)}</div>
+    </div>`;
+}
+
+function renderEmpty() {
+  document.getElementById("content").innerHTML = `
+    <div class="state-box">
+      <div class="display">這次沒有商品資料</div>
+      <div>可能是最新一次執行剛好沒抓到任何促銷品項</div>
+    </div>`;
+}
+
+async function main() {
+  let run;
+  try {
+    run = await fetchLatestRun();
+  } catch (err) {
+    renderError(err.message);
+    document.getElementById("run-meta").textContent = "讀取失敗";
+    return;
+  }
+
+  document.getElementById("run-meta").textContent = `最新更新：${formatTaipeiDate(run.started_at)}`;
+
+  let rows;
+  try {
+    rows = await fetchLatestCache(run.id);
+  } catch (err) {
+    renderError(err.message);
+    return;
+  }
+
+  if (!rows.length) {
+    renderEmpty();
+    return;
+  }
+
+  const highRows = rows.filter((r) => r.confidence_tier === HIGH_TIER)
+    .sort((a, b) => discountRatio(b) - discountRatio(a));
+  const lowRows = rows.filter((r) => LOW_TIERS.includes(r.confidence_tier));
+
+  let html = "";
+
+  if (highRows.length) {
+    html += `
+      <section class="block">
+        <h2 class="section-title">已確認特價 <span class="count">${highRows.length} 項</span></h2>
+        <p class="section-desc">依折扣幅度由大到小排序</p>
+        <div class="price-list">${highRows.map(renderPriceRow).join("")}</div>
+      </section>`;
+  }
+
+  if (lowRows.length) {
+    html += `
+      <section class="block">
+        <h2 class="section-title">待人工確認 <span class="count">${lowRows.length} 項</span></h2>
+        <p class="section-desc">系統無法完整判讀價格，點圖看原圖自行確認</p>
+        <div class="photo-grid">${lowRows.map(renderPhotoCard).join("")}</div>
+      </section>`;
+  }
+
+  if (!html) {
+    renderEmpty();
+    return;
+  }
+
+  document.getElementById("content").innerHTML = html;
+}
+
+main();
+</script>
+
+</body>
+</html>
