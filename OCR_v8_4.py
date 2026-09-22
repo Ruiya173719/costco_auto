@@ -656,15 +656,7 @@ def read_url_list(path):
 
 #匯出引擎
 def run_batch(url_list_path=None, urls=None, output_dir=".", debug_codes=None, write_files=True):
-    """
-    批次處理一批網址。
-
-    urls 直接給清單時優先使用（orchestrator 用，不吃檔案）；
-    沒給 urls 才會退回用 url_list_path 讀檔（維持原本 CLI 用法）。
-    write_files=False 時完全不落地任何 CSV/txt，只回傳資料結構。
-
-    回傳: (all_results, all_dropped, all_errors, total_api_calls)
-    """
+    """批次處理一批網址。"""
     import csv as csv_module
     from datetime import datetime
 
@@ -788,7 +780,7 @@ def run_batch(url_list_path=None, urls=None, output_dir=".", debug_codes=None, w
         print(f"  {errors_path}")  #錯誤檔
         print(f"  {high_risk_path}")    #風險清單
 
-    return all_results, all_dropped, all_errors, total_api_calls
+    return all_results, all_dropped, all_errors, total_api_calls, high_risk_rows
 
 if __name__ == "__main__":
     #批樣測試

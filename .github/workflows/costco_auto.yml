@@ -60,6 +60,8 @@ jobs:
           name: pipeline-outputs
           path: |
             final_output.csv
+            high_risk.csv
+            errors.csv
             daybuy_scraper.log
           if-no-files-found: warn
           retention-days: 14
