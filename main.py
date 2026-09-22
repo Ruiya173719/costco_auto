@@ -10,6 +10,7 @@ import normalize_stage1 as stage1
 import OCR_v8_4 as ocr
 import normalize_finalize as finalize
 import line_push
+import discord_report
 
 # 外部網頁網址
 WEBPAGE_URL = "https://ruiya173719.github.io/costco_auto/"
@@ -69,6 +70,10 @@ def run_pipeline():
             # 資料庫連線錯誤
             except Exception as mark_err:
                 print(f"[警告] 連 mark_run_failed 都失敗了：{mark_err}")
+        try:
+            discord_report.send_failure_report(run_id, str(e))
+        except Exception as discord_err:
+            print(f"[警告] Discord 失敗通報也發不出去：{discord_err}")
         raise  # 重新拋出，讓 GitHub Actions 照樣標記這次執行失敗、照樣寄 email 通知
 
     finally:
@@ -109,6 +114,15 @@ def run_pipeline():
         finalize_result['all_db_rows'],
         webpage_url=WEBPAGE_URL,
         dry_run=LINE_PUSH_DRY_RUN,
+    )
+    # ---- Discord 管理員通報：每次執行都發一則完整報告 ----
+    print("\n" + "=" * 20 + " Discord 通報 " + "=" * 20)
+    discord_report.send_success_report(
+        run_id, stage1_result, finalize_result, calls_used,
+        quota_used_before=stage1_result['used_this_month'],
+        quota_limit=stage1.API_QUOTA_LIMIT,
+        high_risk_count=len(high_risk_rows),
+        errors_count=len(all_errors),
     )
 
     return finalize_result
