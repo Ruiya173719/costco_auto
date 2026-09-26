@@ -3,9 +3,7 @@ name: Costco Auto Pipeline
 # 觸發條件設定
 on:
   schedule:
-    - cron: '58 2 * * 2,6'  # UTC 02:58 = 台北時間 10:58（週二/週六），提早 2 分鐘啟動當緩衝
-
-  # 允許手動點擊按鈕觸發
+  # 移至 Cron-job.org 外部觸發，避免GitHub內建排程嚴重延遲與重複執行
   workflow_dispatch:
 
 # 執行任務定義
