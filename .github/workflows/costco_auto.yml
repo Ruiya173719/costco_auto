@@ -10,7 +10,7 @@ jobs:
   run-pipeline:
     # 指定雲端主機作業系統（最新版 Ubuntu，內建 Chrome 瀏覽器）
     runs-on: ubuntu-latest
-    timeout-minutes: 20  # 避免 Selenium 卡住時無限占用 Actions 額度
+    timeout-minutes: 60  # 避免 Selenium 卡住時無限占用 Actions 額度
 
     steps:
       # 步驟 1：檢出 (Checkout) 儲存庫的程式碼至虛擬機器

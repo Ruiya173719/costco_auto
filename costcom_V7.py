@@ -6,7 +6,6 @@ import random
 import csv
 import logging
 import pytz            # 設定時區
-import schedule        # 定時排程
 from datetime import datetime
 from logging.handlers import RotatingFileHandler
 from selenium import webdriver                  #selenium開啟html用
@@ -53,9 +52,7 @@ LOG_BACKUP_CNT = 3                 # 保留最近的備份檔數
 
 # ---排程設定 ---
 TAIPEI_TZ           = pytz.timezone("Asia/Taipei")
-SCHEDULE_TIME       = "03:00"                  # 基準時間
-SCHEDULE_DAYS       = ("tuesday","saturday",)  # 每週執行的星期
-RANDOM_DELAY_RANGE  = (0, 7200)                # 觸發後隨機延遲秒數
+RANDOM_DELAY_RANGE  = (0, 3000)                # 觸發後隨機延遲秒數
 
 # ---正規化---
 CODE_RE = re.compile(r'#(\d+)')
@@ -590,40 +587,26 @@ def run_scraper(save_csv: bool = True):
 # =====================================================================
 # 排程任務
 # =====================================================================
-def scheduled_job():
-    """
-    排程觸發後的實際任務：
-      先隨機延遲一段時間（避免固定時間爬取被網站偵測為機器人），
-      再執行一次完整爬取流程。
-    """
+def run_pipeline_with_jitter():
+    """由 GitHub Actions 觸發後直接執行的進入點：先隨機延遲小段時間（防封鎖）"""
     delay_seconds = random.randint(*RANDOM_DELAY_RANGE)
     now_str = datetime.now(TAIPEI_TZ).strftime("%H:%M:%S")
-    logger.info(f"[{now_str}] 已進入排定時段，隨機等待 {delay_seconds} 秒後執行...")
+    logger.info( f"[{now_str}] 外部排程已觸發，防封鎖隨機等待 {delay_seconds} 秒後執行...")
     time.sleep(delay_seconds)
 
     exec_time = datetime.now(TAIPEI_TZ)
-    logger.info(f"開始執行排程任務，實際觸發時間: {exec_time.strftime('%Y-%m-%d %H:%M:%S %Z')}")
-    run_scraper()
-
-
-def setup_schedule() -> None:
-    for day in SCHEDULE_DAYS:
-        getattr(schedule.every(), day).at(SCHEDULE_TIME).do(scheduled_job)
     logger.info(
-        f"排程已設定：每週 {'、'.join(SCHEDULE_DAYS)} {SCHEDULE_TIME}（台北時間）觸發，"
-        f"觸發後隨機延遲 {RANDOM_DELAY_RANGE[0]}~{RANDOM_DELAY_RANGE[1]} 秒執行"
+        f"開始執行爬蟲任務，實際啟動時間: {exec_time.strftime('%Y-%m-%d %H:%M:%S %Z')}"
     )
-
+    return run_scraper()
 
 if __name__ == "__main__":
     # 「單次」爬取流程
     if os.environ.get("GITHUB_ACTIONS") == "true":
-        logger.info("偵測到 GitHub Actions 執行環境，執行單次爬取流程")
-        run_scraper()
+        # 雲端 CI/CD 環境：經由 Cron-job 觸發，執行「防封鎖延遲 + 爬蟲」
+        logger.info("偵測到 GitHub Actions 執行環境，啟動防封鎖排程流程...")
+        run_pipeline_with_jitter()
     else:
         # 本機／VS Code 執行時，維持原本的內部排程模式
-        setup_schedule()
-        logger.info("排程已啟動，等待執行...")
-        while True:
-            schedule.run_pending()
-            time.sleep(1)
+        logger.info("偵測到本機/測試環境，直接執行單次爬蟲測試，等待執行...")
+        run_scraper()
