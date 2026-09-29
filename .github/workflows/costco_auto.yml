@@ -2,7 +2,6 @@ name: Costco Auto Pipeline
 
 # 觸發條件設定
 on:
-  schedule:
   # 移至 Cron-job.org 外部觸發，避免GitHub內建排程嚴重延遲與重複執行
   workflow_dispatch:
 
