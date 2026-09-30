@@ -3,7 +3,12 @@ main.py - 端對端 orchestrator
 =================================
 串接五個階段：爬蟲 -> 正規化I -> OCR -> 正規化II（finalize） -> LINE推播
 """
+import os
+import time
+import random
 import csv
+import pytz
+from datetime import datetime
 
 import costcom_V7 as crawler
 import normalize_stage1 as stage1
@@ -16,7 +21,25 @@ import discord_report
 WEBPAGE_URL = "https://ruiya173719.github.io/costco_auto/"
 LINE_PUSH_DRY_RUN = False
 
+# --- 防封鎖排程設定 ---
+TAIPEI_TZ = pytz.timezone("Asia/Taipei")
+RANDOM_DELAY_RANGE = (0, 3000)                # 觸發後隨機延遲秒數
+
+def apply_random_delay_if_ci():
+    """若在 GitHub Actions 環境中執行，先進行防封鎖隨機延遲"""
+    if os.environ.get("GITHUB_ACTIONS") == "true":
+        delay_seconds = random.randint(*RANDOM_DELAY_RANGE)
+        now_str = datetime.now(TAIPEI_TZ).strftime("%H:%M:%S")
+        print(f"[{now_str}] 偵測到 GitHub Actions 觸發，防封鎖隨機等待 {delay_seconds} 秒...")
+        time.sleep(delay_seconds)
+        
+        exec_time = datetime.now(TAIPEI_TZ)
+        print(f"實際啟動任務時間: {exec_time.strftime('%Y-%m-%d %H:%M:%S %Z')}\n")
+
 def run_pipeline():
+    # ---- 執行防封鎖隨機延遲 ----
+    apply_random_delay_if_ci()
+    
     # ---- [1/5] 爬蟲：不匯出CSV檔資料直接保留在記憶體中 ----
     print("=" * 20 + " [1/5] 爬蟲 " + "=" * 20)
     crawled_data, article_url = crawler.run_scraper(save_csv=False)
