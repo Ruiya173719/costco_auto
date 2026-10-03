@@ -2,6 +2,9 @@
 
 **一句話定位**：一套從網頁爬取、AI 視覺辨識、信心分級決策，到多管道通知的全自動化 Agent，每週二、六準時執行，全程無人值守，月成本 $0。
 
+## 成果LINE 即時推播、Discord 維運通報
+<img width="892" height="1836" alt="137450_0" src="https://github.com/user-attachments/assets/3d7335d3-5832-4af2-850c-5341ac8a2d28" /> <img width="934" height="1753" alt="137449_0" src="https://github.com/user-attachments/assets/f49d009f-d05d-4a95-9449-7bf64b0da7ac" />
+
 ---
 
 ## 系統架構
@@ -197,3 +200,7 @@ LINE Messaging API 免費方案每月 200 則訊息，原始設計假設是「1 
 1. 錯誤報告（圖片處理失敗清單）與失敗狀態標記，正式導入主流程
 
 **V12.0** Discord 管理員通報正式上線
+
+**V12.1** [Bug] GitHub 共享Runner佇列排隊，導致無法在指定時間觸發任務
+1.改由Cron-job 外部觸發
+
