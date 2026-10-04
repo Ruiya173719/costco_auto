@@ -3,8 +3,7 @@
 **一句話定位**：一套從網頁爬取、AI 視覺辨識、信心分級決策，到多管道通知的全自動化 Agent，每週二、六準時執行，全程無人值守，月成本 $0。
 
 ## 成果LINE 即時推播、Discord 維運通報
-<img width="892" height="1836" alt="137450_0" src="https://github.com/user-attachments/assets/3d7335d3-5832-4af2-850c-5341ac8a2d28" /> <img width="934" height="1753" alt="137449_0" src="https://github.com/user-attachments/assets/f49d009f-d05d-4a95-9449-7bf64b0da7ac" />
-
+<img width="872" height="843" alt="LINE_Discord" src="https://github.com/user-attachments/assets/be246291-f7fd-43a9-b69f-ebe48566c7f8" />
 ---
 
 ## 系統架構
